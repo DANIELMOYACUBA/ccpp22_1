@@ -1,0 +1,111 @@
+```{r}
+library(rio)
+basepc2 = import("ENAPRES-pc2.xlsx")
+
+```
+
+1.	Se quiere saber la sensación de seguridad de la población, para ello, elabora un indicador aditivo de las variables calle, transpub, vehprop, paradero y taxi. Considera que el indicador debe ir del 0 al 100 (3 puntos).
+
+
+```{r}
+str(basepc2$calle)
+table(basepc2$calle)
+```
+
+```{r}
+names(basepc2)
+```
+
+
+
+```{r}
+library(dplyr)
+
+basepc2 =  basepc2 %>% mutate(indice = calle + transpub+ vehprop + paradero + taxi)
+summary(basepc2$indice)
+```
+```{r}
+basepc2 =  basepc2 %>% mutate(indice_0_100_A = (indice-5)/15*100   )
+summary(basepc2$indice_0_100_A)
+```
+```{r}
+library(scales)
+
+basepc2$indice_0_100_B =   rescale(basepc2$indice, to =c(0,100))
+summary(basepc2$indice_0_100_B)
+```
+
+
+2.	Calcula el intervalo de confianza para el indicador previamente creado e interpreta los resultados (3 puntos)
+
+```{r}
+library(lsr)
+ciMean(basepc2$indice_0_100_A, na.rm = TRUE)
+
+
+ciMean(basepc2$indice_0_100_A, conf = 0.95, na.rm = TRUE)
+```
+
+3.	Se quiere saber la presencia de la  Policía Nacional del Perú en las zonas/ los barrios de las personas encuestadas, para ello, calcula el intervalo de la variable pnp según corresponda e interprete los resultados (3 puntos)
+
+```{r}
+str(basepc2$pnp)
+table(basepc2$pnp)
+```
+```{r}
+basepc2 = basepc2 %>% mutate(pnp=factor(pnp, levels =  c(0:1),labels = c("No presencia","Si presencia")))
+
+str(basepc2$pnp)
+table(basepc2$pnp)
+
+```
+```{r}
+prop.test(5035, 15161+5035, conf.level = 0.95  )
+```
+
+```{r}
+# no es el IC pedido  esete es el de la no presencia
+prop.test(15161, 15161+5035, conf.level = 0.95  )
+```
+
+4.	Se quiere saber si existen diferencias o no entre el promedio de la sensación de seguridad de las mujeres y el promedio de la sensación de seguridad de los hombres.
+ 
+a.	Elabora la prueba correspondiente e interpreta los resultados (4 puntos)
+b.	Elabora el gráfico correspondiente e interpreta los resultados (3 puntos)
+
+```{r}
+str(basepc2$sexo)
+table(basepc2$sexo)
+```
+
+```{r}
+basepc2 = basepc2 %>% mutate(sexo=factor(sexo, levels =  c(1:2),labels = c("Hombre","Mujer")))
+
+str(basepc2$sexo)
+table(basepc2$sexo)
+```
+
+```{r}
+grafico = basepc2 %>% group_by(sexo) %>%  summarise( Media = mean(indice_0_100_A, na.rm = TRUE), min =ciMean(indice_0_100_A, conf = 0.95, na.rm = TRUE)[1],
+                                                                   max =ciMean(indice_0_100_A, conf = 0.95, na.rm = TRUE)[2])
+
+
+grafico
+```
+```{r}
+
+library(ggplot2)
+grafico %>% #Data
+  ggplot()+       #Iniciamos el ggplot. A partir de ahora son +! ya no |>!
+  aes(y=Media, x=sexo)+  #Los grupos en el eje X y la media en el eje Y
+  geom_errorbar(aes(ymin=min, ymax=max), width=0.2)+ #Graficamos la barra de error
+  geom_text(aes(label=paste(round(Media, 2))), vjust=0, size=5)+ #Colocamos el texto del valor de la media
+  xlab("Sexo") + #Etiqueta del eje X
+  ylab("Indice de seguridad") # Etiqueta del eje y
+
+
+```
+
+
+
+
